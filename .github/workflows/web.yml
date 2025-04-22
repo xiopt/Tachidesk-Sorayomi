@@ -19,22 +19,34 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/checkout@v3 # Only works with v2
+      - uses: actions/checkout@v3
+        with:
+          persist-credentials: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
       - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
 
       # Recreating the project
       - run: flutter doctor -v
-      - uses: actions/checkout@v3
-      # - run: flutter create .
       - run: flutter pub get
       - run: flutter gen-l10n
       - run: dart run build_runner build --delete-conflicting-outputs
-
-      - uses: bluefireteam/flutter-gh-pages@v9
-        with:
-          baseHref: /Tachidesk-Sorayomi/
-          webRenderer: canvaskit
-          workingDir: .
-          customArgs: --target=lib/main.dart
+      
+      # Build web
+      - name: Build Web
+        run: flutter build web --release --web-renderer=canvaskit --base-href /Tachidesk-Sorayomi/
+      
+      # Create gh-pages branch if it doesn't exist
+      - name: Create & Push gh-pages branch
+        run: |
+          git config --global user.email "github-actions@github.com"
+          git config --global user.name "GitHub Actions"
+          git checkout --orphan gh-pages || git checkout gh-pages
+          git rm -rf . || true
+          cp -R build/web/* .
+          touch .nojekyll
+          git add .
+          git commit -m "Deploy web app to GitHub Pages"
+          git push origin gh-pages --force
