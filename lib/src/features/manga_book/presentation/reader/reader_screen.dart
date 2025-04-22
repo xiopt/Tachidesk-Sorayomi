@@ -42,6 +42,7 @@ class ReaderScreen extends HookConsumerWidget {
     final defaultReaderMode = ref.watch(readerModeKeyProvider);
 
     final debounce = useRef<Timer?>(null);
+    final lastPageIndex = useRef<int>(-1);
 
     final updateLastRead = useCallback((int currentPage) async {
       final chapterValue = chapter.valueOrNull;
@@ -69,6 +70,9 @@ class ReaderScreen extends HookConsumerWidget {
           return;
         }
 
+        // Always update the lastPageIndex for potential exit saving
+        lastPageIndex.value = index;
+
         final finalDebounce = debounce.value;
         if ((finalDebounce?.isActive).ifNull()) {
           finalDebounce?.cancel();
@@ -89,6 +93,20 @@ class ReaderScreen extends HookConsumerWidget {
       [chapter],
     );
 
+    // Make sure that we save progress when leaving the screen
+    useEffect(() {
+      return () {
+        // Only save if we have a valid page and it's different from what was already saved
+        if (lastPageIndex.value >= 0 && chapter.valueOrNull != null) {
+          final finalDebounce = debounce.value;
+          if ((finalDebounce?.isActive).ifNull()) {
+            finalDebounce?.cancel();
+            updateLastRead(lastPageIndex.value);
+          }
+        }
+      };
+    }, []);
+    
     useEffect(() {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
       return () => SystemChrome.setEnabledSystemUIMode(
@@ -100,6 +118,15 @@ class ReaderScreen extends HookConsumerWidget {
     return PopScope(
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop) {
+          // Save the last read page before popping
+          if (lastPageIndex.value >= 0 && chapter.valueOrNull != null) {
+            final finalDebounce = debounce.value;
+            if ((finalDebounce?.isActive).ifNull()) {
+              finalDebounce?.cancel();
+              await updateLastRead(lastPageIndex.value);
+            }
+          }
+          
           ref.invalidate(chapterProviderWithIndex);
           ref.invalidate(mangaChapterListProvider(mangaId: mangaId));
         }

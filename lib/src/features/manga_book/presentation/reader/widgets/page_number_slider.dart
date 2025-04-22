@@ -7,11 +7,12 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 
 import '../../../../../constants/app_sizes.dart';
 import '../../../../../utils/extensions/custom_extensions.dart';
 
-class PageNumberSlider extends StatelessWidget {
+class PageNumberSlider extends HookWidget {
   const PageNumberSlider({
     super.key,
     required this.currentValue,
@@ -23,24 +24,49 @@ class PageNumberSlider extends StatelessWidget {
   final int maxValue;
   final ValueChanged<int> onChanged;
   final bool inverted;
+  
   @override
   Widget build(BuildContext context) {
+    // Local state to track slider position for immediate updates
+    final sliderPosition = useState<double>(currentValue.toDouble());
+    
+    // Keep track of last displayed value to reduce flickering
+    final lastDisplayedValue = useRef<int>(currentValue);
+    
+    // Update slider position when current value changes from outside
+    useEffect(() {
+      // Only update if the value has actually changed, to minimize UI updates
+      if (lastDisplayedValue.value != currentValue) {
+        // Update the slider position
+        sliderPosition.value = currentValue.toDouble();
+        // Remember what we displayed 
+        lastDisplayedValue.value = currentValue;
+      }
+      return null;
+    }, [currentValue]);
+    
     final sliderWidget = [
-      Text("${currentValue + 1}"),
+      // Use sliderPosition for displaying the current page number
+      Text("${sliderPosition.value.round() + 1}"),
       Expanded(
         child: Transform.flip(
           flipX: inverted,
           child: Slider(
-            value: min(currentValue.toDouble(), max(maxValue.toDouble() - 1, 0)),
+            value: min(sliderPosition.value, max(maxValue.toDouble() - 1, 0)),
             min: 0,
             max: max(maxValue.toDouble() - 1, 0), // Ensure max is always >= 0
             divisions: max(maxValue - 1, 1),
-            onChanged: (val) => onChanged(val.toInt()),
+            // Update local state immediately
+            onChanged: (val) {
+              sliderPosition.value = val;
+              onChanged(val.round());
+            },
           ),
         ),
       ),
       Text("$maxValue"),
     ];
+    
     return Card(
       color: context.theme.appBarTheme.backgroundColor?.withValues(alpha: .7),
       shape: RoundedRectangleBorder(

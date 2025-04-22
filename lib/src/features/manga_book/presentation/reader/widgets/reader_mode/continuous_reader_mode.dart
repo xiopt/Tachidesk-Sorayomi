@@ -29,11 +29,11 @@ import '../../../../domain/chapter_batch/chapter_batch_model.dart';
 import '../../../../domain/chapter_page/chapter_page_model.dart';
 import '../../../../domain/manga/manga_model.dart';
 import '../../../manga_details/controller/manga_details_controller.dart';
+import '../../controller/reader_controller.dart';
 import '../chapter_separator.dart';
 import '../chapter_transition_indicator.dart';
 import '../next_chapter_notice.dart';
 import '../reader_wrapper.dart';
-import '../../controller/reader_controller.dart';
 
 class MultiChapterPageItem {
   final int chapterId;
@@ -78,11 +78,15 @@ class ContinuousReaderMode extends HookConsumerWidget {
     
     // Track the current chapter and page
     final currentChapter = useState<ChapterDto>(chapter);
+    // Current page for internal tracking
     final currentPageIndex = useState(
       chapter.isRead.ifNull()
           ? 0
           : (chapter.lastPageRead).getValueOnNullOrNegative(),
     );
+    
+    // Track what page we last displayed in the UI to minimize updates
+    final lastDisplayedPage = useRef<int>(currentPageIndex.value);
     
     // Stores all loaded chapters and their pages for continuous reading
     final loadedChapters = useState<Map<int, ChapterPagesDto>>({chapter.id: chapterPages});
@@ -200,7 +204,7 @@ class ContinuousReaderMode extends HookConsumerWidget {
       
       // Add to loaded chapters
       final updatedChapters = Map<int, ChapterPagesDto>.from(loadedChapters.value);
-      updatedChapters[nextChapterId] = nextChapterPages as ChapterPagesDto;
+      updatedChapters[nextChapterId] = nextChapterPages;
       loadedChapters.value = updatedChapters;
       
       // Create transition indicator
@@ -261,7 +265,7 @@ class ContinuousReaderMode extends HookConsumerWidget {
       
       // Add to loaded chapters
       final updatedChapters = Map<int, ChapterPagesDto>.from(loadedChapters.value);
-      updatedChapters[prevChapterId] = prevChapterPages as ChapterPagesDto;
+      updatedChapters[prevChapterId] = prevChapterPages;
       loadedChapters.value = updatedChapters;
       
       // Create transition indicator
@@ -321,6 +325,9 @@ class ContinuousReaderMode extends HookConsumerWidget {
       return () => timer.cancel();
     }, [continuousReading, initialNextPrevChapterPair]);
     
+    // Track the last viewed page for immediate saving when changing chapters or exiting
+    final lastViewedPage = useRef<MultiChapterPageItem?>(null);
+    
     // Handle page changes and tracking
     useEffect(() {
       // Find the current page in all loaded pages
@@ -333,6 +340,11 @@ class ContinuousReaderMode extends HookConsumerWidget {
             );
       
       if (currentVisibleItem != null) {
+        // Store the current page for potential exit/cleanup saving
+        if (currentVisibleItem.chapterId > 0) {
+          lastViewedPage.value = currentVisibleItem;
+        }
+        
         // Page tracking for ALL chapters, not just the initial one
         // This ensures we save progress even when reading a different chapter than the one initially loaded
         if (onPageChanged != null && currentVisibleItem.chapterId > 0) {
@@ -408,6 +420,36 @@ class ContinuousReaderMode extends HookConsumerWidget {
       
       return;
     }, [currentPageIndex.value, currentChapter.value, currentNextPrevChapterPair, continuousReading, allChapterPages.value]);
+    
+    // Prepopulate repository for safe access during cleanup
+    final repository = ref.read(mangaBookRepositoryProvider);
+    
+    // Cleanup effect to save progress when exiting the reader
+    useEffect(() {
+      return () {
+        // Save progress for the last viewed page when unmounting
+        final lastPage = lastViewedPage.value;
+        if (lastPage != null && lastPage.chapterId > 0) {
+          final pageIndex = lastPage.pageIndex;
+          final isReadingCompleted = pageIndex >= (lastPage.chapter.pageCount - 1);
+          
+          debugPrint("💾 Saving final progress on exit - Chapter: ${lastPage.chapter.name}, Page: $pageIndex");
+          
+          try {
+            // Use the pre-captured repository instance without referring to ref
+            repository.putChapter(
+              chapterId: lastPage.chapterId,
+              patch: ChapterChange(
+                lastPageRead: isReadingCompleted ? 0 : pageIndex,
+                isRead: isReadingCompleted,
+              ),
+            );
+          } catch (e) {
+            debugPrint("⚠️ Error saving reading progress: $e");
+          }
+        }
+      };
+    }, [repository]);
     
     // Listen for item position changes to track current page
     useEffect(() {
@@ -498,7 +540,21 @@ class ContinuousReaderMode extends HookConsumerWidget {
         if (!chapterLocked.value && currentPageIndex.value != item.pageIndex) {
           // Only update if we're in the originally requested chapter or unlocked
           if (item.chapterId == chapter.id || !chapterLocked.value) {
-            currentPageIndex.value = item.pageIndex;
+            // Update internal tracking, but be smarter about UI updates to prevent jiggling
+            // To prevent jiggling while still being responsive, only update UI when the page
+            // number differs by at least 2 from the last displayed page or if we've been stable
+            // for a brief period (using a virtual debounce with state tracking)
+            
+            // Calculate the absolute difference between current and last displayed page
+            final pageDifference = (item.pageIndex - lastDisplayedPage.value).abs();
+            
+            // Only update if significant change (threshold of 2) or at regular small intervals
+            if (pageDifference >= 2 || item.pageIndex == lastDisplayedPage.value + 1 || item.pageIndex == lastDisplayedPage.value - 1) {
+              // Update internal tracking
+              currentPageIndex.value = item.pageIndex;
+              // Remember what we displayed
+              lastDisplayedPage.value = item.pageIndex;
+            }
           }
         }
       }

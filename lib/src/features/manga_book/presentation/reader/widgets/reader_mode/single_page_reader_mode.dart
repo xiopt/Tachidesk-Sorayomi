@@ -370,6 +370,9 @@ class SinglePageReaderMode extends HookConsumerWidget {
       };
     }, [continuousReading, initialNextPrevChapterPair]);
     
+    // Track the last viewed page for immediate saving when changing chapters or exiting
+    final lastViewedPage = useRef<HorizontalMultiChapterPageItem?>(null);
+    
     // Handle page changes and tracking
     useEffect(() {
       if (onPageChanged != null) onPageChanged!(currentIndex.value);
@@ -389,6 +392,9 @@ class SinglePageReaderMode extends HookConsumerWidget {
           debugPrint("📍 At chapter transition indicator - skipping actions");
           return null;
         }
+        
+        // Store the current page for potential exit/cleanup saving
+        lastViewedPage.value = currentItem;
         
         // Update current chapter if changed
         if (currentItem.chapterId != currentChapter.value.id) {
@@ -441,6 +447,15 @@ class SinglePageReaderMode extends HookConsumerWidget {
               isRead: isReadingCompleted,
             ),
           );
+        }
+      } else if (!continuousReading) {
+        // Even in single chapter mode, track the last viewed page
+        final currentItemIndex = currentIndex.value;
+        if (currentItemIndex >= 0 && currentItemIndex < allPages.value.length) {
+          final currentItem = allPages.value[currentItemIndex];
+          if (!currentItem.isTransitionIndicator) {
+            lastViewedPage.value = currentItem;
+          }
         }
       }
       
@@ -499,6 +514,36 @@ class SinglePageReaderMode extends HookConsumerWidget {
       
       return null;
     }, [currentIndex.value, currentChapter.value, continuousReading, allPages.value]);
+    
+    // Prepopulate repository for safe access during cleanup
+    final repository = ref.read(mangaBookRepositoryProvider);
+    
+    // Cleanup effect to save progress when exiting the reader
+    useEffect(() {
+      return () {
+        // Save progress for the last viewed page when unmounting
+        final lastPage = lastViewedPage.value;
+        if (lastPage != null && !lastPage.isTransitionIndicator) {
+          final pageIndex = lastPage.pageIndex;
+          final isReadingCompleted = pageIndex >= (lastPage.chapterPages.chapter.pageCount - 1);
+          
+          debugPrint("💾 Saving final progress on exit - Chapter: ${lastPage.chapter.name}, Page: $pageIndex");
+          
+          try {
+            // Use the pre-captured repository instance without referring to ref
+            repository.putChapter(
+              chapterId: lastPage.chapterId,
+              patch: ChapterChange(
+                lastPageRead: isReadingCompleted ? 0 : pageIndex,
+                isRead: isReadingCompleted,
+              ),
+            );
+          } catch (e) {
+            debugPrint("⚠️ Error saving reading progress: $e");
+          }
+        }
+      };
+    }, [repository]);
     
     // Listen for page changes
     useEffect(() {
