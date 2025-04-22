@@ -13,10 +13,9 @@
 
 <div align="center">
 
-[![GitHub Stars](https://img.shields.io/github/stars/Suwayomi/Tachidesk-Sorayomi)](https://github.com/Suwayomi/Tachidesk-Sorayomi)
-[![GitHub License](https://img.shields.io/github/license/Suwayomi/Tachidesk-Sorayomi)](https://github.com/Suwayomi/Tachidesk-Sorayomi/blob/main/LICENSE)
-![CI](https://github.com/Suwayomi/Tachidesk-Sorayomi/actions/workflows/publish.yml/badge.svg)
-[![stable release](https://img.shields.io/github/release/Suwayomi/Tachidesk-Sorayomi.svg?maxAge=3600&label=download)](https://github.com/Suwayomi/Tachidesk-Sorayomi/releases)
+[![GitHub Stars](https://img.shields.io/github/stars/xiopt/Tachidesk-Sorayomi)](https://github.com/xiopt/Tachidesk-Sorayomi)
+[![GitHub License](https://img.shields.io/github/license/xiopt/Tachidesk-Sorayomi)](https://github.com/xiopt/Tachidesk-Sorayomi/blob/main/LICENSE)
+[![stable release](https://img.shields.io/github/release/xiopt/Tachidesk-Sorayomi.svg?maxAge=3600&label=download)](https://github.com/xiopt/Tachidesk-Sorayomi/releases)
 
 </div>
 
@@ -30,16 +29,27 @@ Sorayomi supports Linux, Windows, MacOS, Web, iOS and Android.
 
 ---
 
+> **Note**: This is a fork of the original [Tachidesk-Sorayomi](https://github.com/Suwayomi/Tachidesk-Sorayomi) app with additional features and enhancements. 
+
 ## Is this application usable? Should I test it?
 
 Here is a list of current features for interaction with Sorayomi:
 
+### Original Features
 - Managing installed Extensions.
 - Interaction with your library.
 - Browsing installed sources.
 - Viewing manga and chapters.
 - Reading, downloading, and managing chapters.
 - Viewing chapter updates
+
+### Fork Enhancements
+- **On Deck Page**: Track and display manga with ongoing reading progress
+- **Enhanced Reader**: 
+  - Improved continuous reading experience
+  - Reliable progress tracking (even when exiting quickly)
+  - Better page navigation between chapters
+- **Stability Improvements**: Fixed various bugs in chapter tracking and UI
 
 **Note:** Keep in mind that Sorayomi and Suwayomi-Server are alpha software, so it can have issues. See [Support and help](#support-and-help) if it happens.
 
@@ -126,7 +136,7 @@ You can install Flutter & Dart from [Official website](https://docs.flutter.dev/
 1.  Clone the repository:
 
 ```
-  $ git clone https://github.com/Suwayomi/Tachidesk-Sorayomi.git
+  $ git clone https://github.com/xiopt/Tachidesk-Sorayomi.git
   $ cd Tachidesk-Sorayomi/
 ```
 2.  You can install all dependencies by running this command in terminal:
@@ -168,9 +178,11 @@ Find other dependencies in [pubspec.yaml](pubspec.yaml)
 
 - The `Suwayomi-server` project is developed by [@AriaMoradi](https://github.com/AriaMoradi) and contributors,
 
-- The `Tachidesk-Sorayomi` project is developed by [@DattatreyaReddy](https://github.com/DattatreyaReddy) and contributors,
+- The original `Tachidesk-Sorayomi` project is developed by [@DattatreyaReddy](https://github.com/DattatreyaReddy) and contributors,
 
 - CI-CD for `Tachidesk-Sorayomi` is developed by [@mahor1221](https://github.com/mahor1221) and contributors.
+
+- This fork is maintained by [@xiopt](https://github.com/xiopt) with various enhancements and fixes.
 
 ## Translation
 Feel free to translate the project on [Weblate](https://hosted.weblate.org/projects/suwayomi/tachidesk-sorayomi/)
@@ -195,6 +207,6 @@ You can obtain a copy of `Mozilla Public License v2.0` from https://mozilla.org/
     file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 
-[release]: https://github.com/Suwayomi/Tachidesk-Sorayomi/releases
+[release]: https://github.com/xiopt/Tachidesk-Sorayomi/releases
 [suwayomi-server]: https://github.com/Suwayomi/Suwayomi-Server
 [suwayomi-server-preview]: https://github.com/Suwayomi/Suwayomi-Server-preview/releases
