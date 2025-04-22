@@ -41,5 +41,6 @@
         // "**/*.graphql.dart": true,
         // "**/*.freezed.dart": true,
         "**/*.g.dart": true,
-    }
+    },
+    "cmake.sourceDirectory": "/Users/ainz/Work/Personal/Tachidesk-Sorayomi/linux/flutter"
 }
