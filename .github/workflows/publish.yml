@@ -72,7 +72,8 @@ jobs:
       # - run: flutter create .
       - run: flutter pub get
       - run: flutter gen-l10n
-      - run: dart run build_runner build --delete-conflicting-outputs
+      - name: Generate code
+        run: flutter pub run build_runner build --delete-conflicting-outputs
 
       # Configure Keystore for Android
       - name: Configure Keystore for Android
