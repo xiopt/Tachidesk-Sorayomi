@@ -96,13 +96,14 @@ class ReaderScreen extends HookConsumerWidget {
     // Make sure that we save progress when leaving the screen
     useEffect(() {
       return () {
-        // Only save if we have a valid page and it's different from what was already saved
+        // Save if we have a valid page
         if (lastPageIndex.value >= 0 && chapter.valueOrNull != null) {
           final finalDebounce = debounce.value;
           if ((finalDebounce?.isActive).ifNull()) {
             finalDebounce?.cancel();
-            updateLastRead(lastPageIndex.value);
           }
+          // Always save the last page read
+          updateLastRead(lastPageIndex.value);
         }
       };
     }, []);
@@ -123,12 +124,16 @@ class ReaderScreen extends HookConsumerWidget {
             final finalDebounce = debounce.value;
             if ((finalDebounce?.isActive).ifNull()) {
               finalDebounce?.cancel();
-              await updateLastRead(lastPageIndex.value);
             }
+            // Always save the last page read regardless of debounce status
+            await updateLastRead(lastPageIndex.value);
           }
           
-          ref.invalidate(chapterProviderWithIndex);
-          ref.invalidate(mangaChapterListProvider(mangaId: mangaId));
+          // We'll invalidate providers in the next frame to avoid invalidating during disposal
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            ref.invalidate(chapterProviderWithIndex);
+            ref.invalidate(mangaChapterListProvider(mangaId: mangaId));
+          });
         }
       },
       child: ScrollConfiguration(

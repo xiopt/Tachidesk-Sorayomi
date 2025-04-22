@@ -25,7 +25,7 @@ class OnDeckRepository {
         variables: Variables$Query$GetChapterWithMangaPage(
           filter: Input$ChapterFilterInput(
             inLibrary: Input$BooleanFilterInput(equalTo: true),
-            isRead: Input$BooleanFilterInput(equalTo: false),
+            // Show all chapters with reading progress, including completed chapters
             lastPageRead: Input$IntFilterInput(greaterThan: 0),
           ),
           first: 20,

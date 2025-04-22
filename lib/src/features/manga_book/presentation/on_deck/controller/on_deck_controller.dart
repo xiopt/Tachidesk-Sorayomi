@@ -36,7 +36,9 @@ class OnDeckController extends _$OnDeckController {
       } else {
         // Convert the dynamic map data to ChapterWithMangaDto objects
         final nodes = inProgressChapters['nodes'] as List;
-        final chapterNodes = <ChapterWithMangaDto>[];
+        
+        // First pass - collect all chapters grouped by manga
+        final Map<int, List<ChapterWithMangaDto>> mangaToChapters = {};
         
         for (final node in nodes) {
           try {
@@ -44,12 +46,46 @@ class OnDeckController extends _$OnDeckController {
             final fragmentChapter = Fragment$ChapterWithMangaDto.fromJson(
               node as Map<String, dynamic>
             );
-            // ChapterWithMangaDto is just a type alias for Fragment$ChapterWithMangaDto
-            // so we can add it directly to our typed list
-            chapterNodes.add(fragmentChapter);
+            
+            // Group chapters by manga ID
+            if (!mangaToChapters.containsKey(fragmentChapter.manga.id)) {
+              mangaToChapters[fragmentChapter.manga.id] = [];
+            }
+            mangaToChapters[fragmentChapter.manga.id]!.add(fragmentChapter);
           } catch (e) {
             // Log error but continue with other chapters
             logger.e('Error converting chapter: $e');
+          }
+        }
+        
+        // Second pass - for each manga, find the most recently read chapter that isn't complete
+        final chapterNodes = <ChapterWithMangaDto>[];
+        
+        for (final mangaId in mangaToChapters.keys) {
+          final mangaChapters = mangaToChapters[mangaId]!;
+          
+          // First, check if the manga has any unfinished chapters (read progress but not fully read)
+          final hasUnfinishedChapters = mangaChapters.any((chapter) => 
+            chapter.lastPageRead > 0 && !chapter.isRead
+          );
+          
+          // Only show manga that have unfinished chapters
+          if (hasUnfinishedChapters) {
+            // Sort by lastReadAt (descending) to get the most recently accessed chapter first
+            mangaChapters.sort((a, b) {
+              // Compare timestamps (higher = more recent)
+              final aTimestamp = int.tryParse(a.lastReadAt) ?? 0;
+              final bTimestamp = int.tryParse(b.lastReadAt) ?? 0;
+              return bTimestamp.compareTo(aTimestamp);
+            });
+            
+            // Find the most recently read chapter that has progress but isn't complete
+            for (final chapter in mangaChapters) {
+              if (chapter.lastPageRead > 0 && !chapter.isRead) {
+                chapterNodes.add(chapter);
+                break;
+              }
+            }
           }
         }
         
