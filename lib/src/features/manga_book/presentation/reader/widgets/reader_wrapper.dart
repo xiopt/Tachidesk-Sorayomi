@@ -31,6 +31,8 @@ import '../../../../settings/presentation/reader/widgets/reader_padding_slider/r
 import '../../../../settings/presentation/reader/widgets/reader_swipe_toggle_tile/reader_swipe_chapter_toggle_tile.dart';
 import '../../../../settings/presentation/reader/widgets/reader_volume_tap_invert_tile/reader_volume_tap_invert_tile.dart';
 import '../../../../settings/presentation/reader/widgets/reader_volume_tap_tile/reader_volume_tap_tile.dart';
+import '../../../../settings/presentation/reader/widgets/reader_continuous_reading_tile/reader_continuous_reading_tile.dart';
+import '../../../../settings/presentation/reader/widgets/reader_auto_next_chapter_tile/reader_auto_next_chapter_tile.dart';
 import '../../../data/manga_book/manga_book_repository.dart';
 import '../../../domain/chapter/chapter_model.dart';
 import '../../../domain/chapter_batch/chapter_batch_model.dart';
@@ -271,6 +273,20 @@ class ReaderWrapper extends HookConsumerWidget {
                   );
                   ref.invalidate(mangaWithIdProvider(mangaId: manga.id));
                 },
+              ),
+              // Add continuous reading toggle
+              SwitchListTile(
+                secondary: const Icon(Icons.auto_stories_rounded),
+                title: Text(context.l10n.readerContinuousReading),
+                onChanged: ref.read(continuousReadingToggleProvider.notifier).update,
+                value: ref.watch(continuousReadingToggleProvider).ifNull(),
+              ),
+              // Add auto next chapter toggle
+              SwitchListTile(
+                secondary: const Icon(Icons.skip_next_rounded),
+                title: Text(context.l10n.readerAutoNextChapter),
+                onChanged: ref.read(autoNextChapterToggleProvider.notifier).update,
+                value: ref.watch(autoNextChapterToggleProvider).ifNull(),
               ),
             ],
           ),

@@ -53,6 +53,7 @@ enum DBKeys {
   hideEmptyCategory(false),
   pinchToZoom(true),
   flexScheme(FlexScheme.material),
+  continuousReading(false),
   ;
 
   const DBKeys(this.initial);

@@ -1139,6 +1139,8 @@
     "readerSwipeChapterToggleDescription": "Swipe to change chapter in reader",
     "readerAutoNextChapter": "Auto next chapter",
     "readerAutoNextChapterDescription": "Automatically continue to next chapter when reaching the end",
+    "readerContinuousReading": "Continuous reading",
+    "readerContinuousReadingDescription": "Seamlessly load the next chapter when scrolling to the end",
     "nextChapterComing": "Next chapter coming up",
     "readerVolumeTap": "Volume Keys",
     "readerVolumeTapInvert": "Invert Volume Keys",
