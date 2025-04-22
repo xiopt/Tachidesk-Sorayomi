@@ -17,6 +17,7 @@ import '../features/library/presentation/category/edit_category_screen.dart';
 import '../features/library/presentation/library/library_screen.dart';
 import '../features/manga_book/presentation/downloads/downloads_screen.dart';
 import '../features/manga_book/presentation/manga_details/manga_details_screen.dart';
+import '../features/manga_book/presentation/on_deck/on_deck_screen.dart';
 import '../features/manga_book/presentation/reader/reader_screen.dart';
 import '../features/manga_book/presentation/updates/updates_screen.dart';
 import '../features/manga_book/widgets/update_status_summary_sheet.dart';
@@ -41,6 +42,7 @@ part 'sub_routes/common_routes.dart';
 part 'sub_routes/downloads_routes.dart';
 part 'sub_routes/library_routes.dart';
 part 'sub_routes/more_routes.dart';
+part 'sub_routes/on_deck_routes.dart';
 part 'sub_routes/updates_routes.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
@@ -53,6 +55,8 @@ final _browseNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'browse');
 
 abstract class Routes {
   static const library = '/library/:categoryId';
+
+  static const onDeck = '/on-deck';
 
   static const updates = '/updates';
 
@@ -91,7 +95,7 @@ GoRouter routerConfig(ref) {
   return GoRouter(
     routes: $appRoutes,
     debugLogDiagnostics: true,
-    initialLocation: const LibraryRoute(categoryId: 0).location,
+    initialLocation: const OnDeckRoute().location,
     navigatorKey: rootNavigatorKey,
   );
 }
@@ -100,6 +104,9 @@ GoRouter routerConfig(ref) {
   routes: [
     TypedStatefulShellRoute<NavigationShellRoute>(
       branches: [
+        TypedStatefulShellBranch<OnDeckBranch>(
+          routes: [TypedGoRoute<OnDeckRoute>(path: Routes.onDeck)],
+        ),
         TypedStatefulShellBranch<LibraryBranch>(
           routes: [
             TypedGoRoute<LibraryRoute>(
