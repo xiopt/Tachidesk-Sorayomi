@@ -10,6 +10,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:gap/gap.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
@@ -17,12 +18,15 @@ import '../../../../../../constants/app_constants.dart';
 import '../../../../../../utils/extensions/custom_extensions.dart';
 import '../../../../../../utils/misc/app_utils.dart';
 import '../../../../../../widgets/server_image.dart';
+import '../../../../../settings/presentation/reader/widgets/reader_auto_next_chapter_tile/reader_auto_next_chapter_tile.dart';
 import '../../../../../settings/presentation/reader/widgets/reader_pinch_to_zoom/reader_pinch_to_zoom.dart';
 import '../../../../../settings/presentation/reader/widgets/reader_scroll_animation_tile/reader_scroll_animation_tile.dart';
 import '../../../../domain/chapter/chapter_model.dart';
 import '../../../../domain/chapter_page/chapter_page_model.dart';
 import '../../../../domain/manga/manga_model.dart';
+import '../../../manga_details/controller/manga_details_controller.dart';
 import '../chapter_separator.dart';
+import '../next_chapter_notice.dart';
 import '../reader_wrapper.dart';
 
 class ContinuousReaderMode extends HookConsumerWidget {
@@ -47,6 +51,7 @@ class ContinuousReaderMode extends HookConsumerWidget {
   final ChapterPagesDto chapterPages;
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final autoNextChapter = ref.watch(autoNextChapterToggleProvider).ifNull();
     final scrollController = useMemoized(() => ItemScrollController());
     final positionsListener = useMemoized(() => ItemPositionsListener.create());
     final currentIndex = useState(
@@ -54,9 +59,30 @@ class ContinuousReaderMode extends HookConsumerWidget {
           ? 0
           : (chapter.lastPageRead).getValueOnNullOrNegative(),
     );
+    
+    final nextPrevChapterPair = ref.watch(
+      getNextAndPreviousChaptersProvider(
+        mangaId: manga.id,
+        chapterId: chapter.id,
+      ),
+    );
+    
     useEffect(() {
       if (onPageChanged != null) {
         onPageChanged!(currentIndex.value);
+      }
+      
+      // Automatically navigate to next chapter when reaching the last page
+      if (autoNextChapter && 
+          currentIndex.value >= chapterPages.chapter.pageCount - 1 && 
+          nextPrevChapterPair?.first != null) {
+        Future.delayed(const Duration(seconds: 2), () {
+          if (context.mounted) {
+            context.pushReplacement(
+              '/manga/${nextPrevChapterPair!.first!.mangaId}/chapter/${nextPrevChapterPair.first!.id}'
+            );
+          }
+        });
       }
       return;
     }, [currentIndex.value]);
@@ -130,75 +156,93 @@ class ContinuousReaderMode extends HookConsumerWidget {
                 alignment: alignment,
               );
       },
-      child: AppUtils.wrapOn(
-        !kIsWeb &&
-                (Platform.isAndroid || Platform.isIOS) &&
-                isPinchToZoomEnabled
-            ? (child) => InteractiveViewer(maxScale: 5, child: child)
-            : null,
-        ScrollablePositionedList.separated(
-          itemScrollController: scrollController,
-          itemPositionsListener: positionsListener,
-          initialScrollIndex: chapter.isRead.ifNull()
-              ? 0
-              : chapter.lastPageRead.getValueOnNullOrNegative(),
-          scrollDirection: scrollDirection,
-          reverse: reverse,
-          itemCount: chapterPages.chapter.pageCount,
-          minCacheExtent: scrollDirection == Axis.vertical
-              ? context.height * 2
-              : context.width * 2,
-          separatorBuilder: (BuildContext context, int index) =>
-              showSeparator ? const Gap(16) : const SizedBox.shrink(),
-          itemBuilder: (BuildContext context, int index) {
-            final image = ServerImage(
-              showReloadButton: true,
-              fit: scrollDirection == Axis.vertical
-                  ? BoxFit.fitWidth
-                  : BoxFit.fitHeight,
-              appendApiToUrl: false,
-              imageUrl: chapterPages.pages[index],
-              progressIndicatorBuilder: (_, __, downloadProgress) => Center(
-                child: CircularProgressIndicator(
-                  value: downloadProgress.progress,
-                ),
+      child: Stack(
+        children: [
+          AppUtils.wrapOn(
+            !kIsWeb &&
+                    (Platform.isAndroid || Platform.isIOS) &&
+                    isPinchToZoomEnabled
+                ? (child) => InteractiveViewer(maxScale: 5, child: child)
+                : null,
+            ScrollablePositionedList.separated(
+              itemScrollController: scrollController,
+              itemPositionsListener: positionsListener,
+              initialScrollIndex: chapter.isRead.ifNull()
+                  ? 0
+                  : chapter.lastPageRead.getValueOnNullOrNegative(),
+              scrollDirection: scrollDirection,
+              reverse: reverse,
+              itemCount: chapterPages.chapter.pageCount,
+              minCacheExtent: scrollDirection == Axis.vertical
+                  ? context.height * 2
+                  : context.width * 2,
+              separatorBuilder: (BuildContext context, int index) =>
+                  showSeparator ? const Gap(16) : const SizedBox.shrink(),
+              itemBuilder: (BuildContext context, int index) {
+                final image = ServerImage(
+                  showReloadButton: true,
+                  fit: scrollDirection == Axis.vertical
+                      ? BoxFit.fitWidth
+                      : BoxFit.fitHeight,
+                  appendApiToUrl: false,
+                  imageUrl: chapterPages.pages[index],
+                  progressIndicatorBuilder: (_, __, downloadProgress) => Center(
+                    child: CircularProgressIndicator(
+                      value: downloadProgress.progress,
+                    ),
+                  ),
+                  wrapper: (child) => SizedBox(
+                    height: scrollDirection == Axis.vertical
+                        ? context.height * .7
+                        : null,
+                    width: scrollDirection != Axis.vertical
+                        ? context.width * .7
+                        : null,
+                    child: child,
+                  ),
+                );
+                if (index == 0 || index == chapterPages.chapter.pageCount - 1) {
+                  final bool reverseDirection =
+                      scrollDirection == Axis.horizontal && reverse;
+                  final separator = SizedBox(
+                    width: scrollDirection != Axis.vertical
+                        ? context.width * .5
+                        : null,
+                    child: ChapterSeparator(
+                      manga: manga,
+                      chapter: chapter,
+                      isPreviousChapterSeparator: (index == 0),
+                    ),
+                  );
+                  return Flex(
+                    direction: scrollDirection,
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: ((index == 0) != reverseDirection)
+                        ? [separator, image]
+                        : [image, separator],
+                  );
+                } else {
+                  return image;
+                }
+              },
+            ),
+          ),
+          if (autoNextChapter && 
+              currentIndex.value >= chapterPages.chapter.pageCount - 1 && 
+              nextPrevChapterPair?.first != null)
+            Positioned(
+              bottom: 16,
+              left: 0,
+              right: 0,
+              child: NextChapterNotice(
+                nextChapter: nextPrevChapterPair!.first!,
+                mangaId: manga.id,
+                showAction: false,
+                transVertical: scrollDirection != Axis.vertical,
               ),
-              wrapper: (child) => SizedBox(
-                height: scrollDirection == Axis.vertical
-                    ? context.height * .7
-                    : null,
-                width: scrollDirection != Axis.vertical
-                    ? context.width * .7
-                    : null,
-                child: child,
-              ),
-            );
-            if (index == 0 || index == chapterPages.chapter.pageCount - 1) {
-              final bool reverseDirection =
-                  scrollDirection == Axis.horizontal && reverse;
-              final separator = SizedBox(
-                width: scrollDirection != Axis.vertical
-                    ? context.width * .5
-                    : null,
-                child: ChapterSeparator(
-                  manga: manga,
-                  chapter: chapter,
-                  isPreviousChapterSeparator: (index == 0),
-                ),
-              );
-              return Flex(
-                direction: scrollDirection,
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: ((index == 0) != reverseDirection)
-                    ? [separator, image]
-                    : [image, separator],
-              );
-            } else {
-              return image;
-            }
-          },
-        ),
+            ),
+        ],
       ),
     );
   }

@@ -27,6 +27,7 @@ enum DBKeys {
   invertTap(false),
   quickSearchToggle(true),
   swipeToggle(true),
+  autoNextChapter(true),
   scrollAnimation(true),
   showNSFW(true),
   downloadedBadge(true),
