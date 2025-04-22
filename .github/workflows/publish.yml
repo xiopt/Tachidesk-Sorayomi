@@ -188,7 +188,7 @@ jobs:
         with:
           draft: false
           files: ${{ env.pkg_name }}*
-          token: ${{ secrets.DEPLOY_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
   winget-publish:
     needs: create-build
