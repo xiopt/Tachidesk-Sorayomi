@@ -36,7 +36,7 @@ jobs:
       
       # Build web
       - name: Build Web
-        run: flutter build web --release --web-renderer=canvaskit --base-href /Tachidesk-Sorayomi/
+        run: flutter build web --release --web-renderer canvaskit --base-href /Tachidesk-Sorayomi/
       
       # Create gh-pages branch if it doesn't exist
       - name: Create & Push gh-pages branch
