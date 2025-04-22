@@ -27,16 +27,25 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
+          flutter-version: '3.19.3'
 
-      # Recreating the project
-      - run: flutter doctor -v
+      # Check Flutter version and setup
+      - name: Check Flutter version
+        run: |
+          flutter --version
+          flutter doctor -v
       - run: flutter pub get
       - run: flutter gen-l10n
       - run: dart run build_runner build --delete-conflicting-outputs
       
       # Build web
       - name: Build Web
-        run: flutter build web --release --web-renderer canvaskit --base-href /Tachidesk-Sorayomi/
+        run: |
+          # Check available options
+          flutter build web --help
+          
+          # Build with simpler command
+          flutter build web --release --base-href=/Tachidesk-Sorayomi/
       
       # Create gh-pages branch if it doesn't exist
       - name: Create & Push gh-pages branch
