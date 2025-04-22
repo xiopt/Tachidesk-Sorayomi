@@ -14,6 +14,11 @@ class NavigationBarData {
   final IconData activeIcon;
   static final navList = [
     NavigationBarData(
+      icon: Icons.bookmark_border_outlined,
+      activeIcon: Icons.bookmark_rounded,
+      label: (context) => context.l10n.onDeck,
+    ),
+    NavigationBarData(
       icon: Icons.collections_bookmark_outlined,
       activeIcon: Icons.collections_bookmark_rounded,
       label: (context) => context.l10n.library,
