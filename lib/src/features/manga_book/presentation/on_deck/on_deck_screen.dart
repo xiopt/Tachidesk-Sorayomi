@@ -155,7 +155,6 @@ class OnDeckScreenState extends ConsumerState<OnDeckScreen> with AutomaticKeepAl
                 },
                 isSelected: _selectedChapters.containsKey(item.id),
                 canTapSelect: _selectedChapters.isNotEmpty,
-                showProgressIndicator: true,
                 toggleSelect: (ChapterWithMangaDto val) {
                   if ((val.id).isNull) return;
                   setState(() {
