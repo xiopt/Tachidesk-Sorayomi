@@ -27,7 +27,7 @@ class OnDeckScreen extends ConsumerStatefulWidget {
 
 class OnDeckScreenState extends ConsumerState<OnDeckScreen> with AutomaticKeepAliveClientMixin {
   late PagingController<int, ChapterWithMangaDto> _controller;
-  Map<int, ChapterDto> _selectedChapters = {};
+  Map<int, ChapterWithMangaDto> _selectedChapters = {};
   DateTime? _lastRefreshTime;
   
   @override
@@ -137,8 +137,6 @@ class OnDeckScreenState extends ConsumerState<OnDeckScreen> with AutomaticKeepAl
             itemBuilder: (context, item, index) {
               return ChapterMangaListTile(
                 chapterWithMangaDto: item,
-                // Show progress indicator for On Deck items
-                showProgressIndicator: true,
                 updatePair: () async {
                   final chapter = await ref
                       .refresh(chapterProvider(chapterId: item.id).future);
@@ -157,7 +155,8 @@ class OnDeckScreenState extends ConsumerState<OnDeckScreen> with AutomaticKeepAl
                 },
                 isSelected: _selectedChapters.containsKey(item.id),
                 canTapSelect: _selectedChapters.isNotEmpty,
-                toggleSelect: (ChapterDto val) {
+                showProgressIndicator: true,
+                toggleSelect: (ChapterWithMangaDto val) {
                   if ((val.id).isNull) return;
                   setState(() {
                     _selectedChapters = _selectedChapters.toggleKey(val.id, val);
