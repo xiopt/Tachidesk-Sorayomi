@@ -34,6 +34,7 @@ class Toast {
         child: ToastWidget(
           text: msg,
           backgroundColor: Colors.black,
+          textColor: Colors.white,
         ),
         gravity: ToastGravity.BOTTOM,
       );
@@ -87,10 +88,24 @@ class ToastWidget extends StatelessWidget {
   final Color? textColor;
   @override
   Widget build(BuildContext context) {
+    // Determine text color based on the background
+    Color resolveTextColor(BuildContext context) {
+      if (textColor != null) {
+        return textColor!;
+      }
+      
+      // If background is dark (like black), use white text
+      if (backgroundColor != null && backgroundColor == Colors.black) {
+        return Colors.white;
+      }
+      
+      // Otherwise use system theme color
+      return context.colorScheme.onPrimaryContainer;
+    }
+    
     Widget textWidget = Text(
       text,
-      style:
-          TextStyle(color: textColor ?? context.colorScheme.onPrimaryContainer),
+      style: TextStyle(color: resolveTextColor(context)),
       textAlign: TextAlign.center,
     );
     return Container(

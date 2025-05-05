@@ -18,17 +18,32 @@ part 'on_deck_controller.g.dart';
 class OnDeckController extends _$OnDeckController {
   @override
   Future<List<ChapterWithMangaDto>> build() async {
+    // Log when the controller is built/refreshed
+    logger.i("Building OnDeckController");
+    // Clear any cached data from the repository
+    ref.read(onDeckRepositoryProvider).clearCache();
     return [];
   }
 
   Future<void> fetchInProgressChapters({
     required int pageKey,
     required PagingController<int, ChapterWithMangaDto> controller,
+    bool forceRefresh = false,
   }) async {
+    logger.i("Fetching in-progress chapters. Page: $pageKey, forceRefresh: $forceRefresh");
+    
+    // Clear the controller's cached items to force a fresh load
+    if (forceRefresh && pageKey == 0) {
+      // Always clear the list when forcing a refresh
+      controller.itemList?.clear();
+    }
+    
     try {
       final repository = ref.read(onDeckRepositoryProvider);
+      // Pass the forceRefresh parameter to the repository
       final inProgressChapters = await repository.getInProgressChaptersPage(
         pageNo: pageKey,
+        forceRefresh: forceRefresh,
       );
       
       if (inProgressChapters == null || inProgressChapters['nodes'] == null || inProgressChapters['nodes'].isEmpty) {
@@ -105,3 +120,4 @@ class OnDeckController extends _$OnDeckController {
 Future<List<ChapterWithMangaDto>> onDeckItems(OnDeckItemsRef ref) async {
   return ref.watch(onDeckControllerProvider.future);
 }
+

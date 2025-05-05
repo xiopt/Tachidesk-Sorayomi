@@ -17,11 +17,26 @@ class OnDeckRepository {
   const OnDeckRepository(this.client);
   final GraphQLClient client;
 
+  // Method to clear any cached data
+  void clearCache() {
+    // Reset the cache for the query
+    client.cache.store.reset();
+  }
+
   Future<dynamic> getInProgressChaptersPage({
     int pageNo = 0,
+    bool forceRefresh = false,
   }) async {
+    // First, clear the cache completely
+    if (forceRefresh) {
+      clearCache();
+    }
+    
+    // Now perform the query with network-only policy to ensure fresh data
     final result = await client.query$GetChapterWithMangaPage(
       Options$Query$GetChapterWithMangaPage(
+        // Always use network-only to ensure fresh data
+        fetchPolicy: FetchPolicy.networkOnly,
         variables: Variables$Query$GetChapterWithMangaPage(
           filter: Input$ChapterFilterInput(
             inLibrary: Input$BooleanFilterInput(equalTo: true),

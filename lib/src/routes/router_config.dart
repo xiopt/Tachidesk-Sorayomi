@@ -2,6 +2,7 @@ import 'package:flex_color_scheme/flex_color_scheme.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -90,13 +91,48 @@ abstract class Routes {
   static const globalSearch = '/global-search';
 }
 
+// Observer for router changes
+class GoRouterObserver extends NavigatorObserver {
+  final void Function(Route<dynamic>?, Route<dynamic>?) onRouteChange;
+  
+  GoRouterObserver({required this.onRouteChange});
+  
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    onRouteChange(route, previousRoute);
+  }
+  
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    onRouteChange(route, previousRoute);
+  }
+  
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    onRouteChange(newRoute, oldRoute);
+  }
+}
+
+// Provider to expose the current route
+final currentRouteProvider = StateProvider<String?>((ref) => null);
+
 @riverpod
 GoRouter routerConfig(ref) {
+  final observer = GoRouterObserver(
+    onRouteChange: (route, previousRoute) {
+      if (route != null) {
+        // Update current route provider when navigation occurs
+        ref.read(currentRouteProvider.notifier).state = route.settings.name;
+      }
+    }
+  );
+  
   return GoRouter(
     routes: $appRoutes,
     debugLogDiagnostics: true,
     initialLocation: const OnDeckRoute().location,
     navigatorKey: rootNavigatorKey,
+    observers: [observer],
   );
 }
 
