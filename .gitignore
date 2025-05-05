@@ -37,7 +37,7 @@ migrate_working_dir/
 /build/
 
 # Symbolication related
-app.*.symbols
+ app.*.symbols
 
 # Obfuscation related
 app.*.map.json
@@ -47,10 +47,16 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-
+# Generated files
 *.g.dart
 *.freezed.dart
 *.graphql.dart
 **/__generated__
 lib/src/l10n/generated
+
+# Except the chapter progress indicator
+!lib/src/widgets/chapter_progress/chapter_progress_indicator.dart
+
 CLAUDE.md
+
+**/.claude/settings.local.json
