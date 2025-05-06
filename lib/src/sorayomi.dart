@@ -10,6 +10,7 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import 'features/manga_book/data/reading_progress/reading_progress_repository.dart';
 import 'features/settings/presentation/appearance/widgets/app_theme_selector/app_theme_selector.dart';
 import 'features/settings/presentation/appearance/widgets/is_true_black/is_true_black_tile.dart';
 import 'features/settings/widgets/app_theme_mode_tile/app_theme_mode_tile.dart';
@@ -29,6 +30,9 @@ class Sorayomi extends ConsumerWidget {
     final appScheme = ref.watch(appSchemeProvider);
     final isTrueBlack = ref.watch(isTrueBlackProvider);
     final client = ref.watch(graphQlClientNotifierProvider);
+    
+    // Initialize the reading progress sync service (will start background sync)
+    ref.watch(progressSyncServiceProvider);
     return GraphQLProvider(
       client: client,
       child: MaterialApp.router(
