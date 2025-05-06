@@ -25,10 +25,12 @@ import '../../../../../settings/presentation/reader/widgets/reader_continuous_re
 import '../../../../../settings/presentation/reader/widgets/reader_pinch_to_zoom/reader_pinch_to_zoom.dart';
 import '../../../../../settings/presentation/reader/widgets/reader_scroll_animation_tile/reader_scroll_animation_tile.dart';
 import '../../../../data/manga_book/manga_book_repository.dart';
+import '../../../../data/reading_progress/reading_progress_repository.dart';
 import '../../../../domain/chapter/chapter_model.dart';
 import '../../../../domain/chapter_batch/chapter_batch_model.dart';
 import '../../../../domain/chapter_page/chapter_page_model.dart';
 import '../../../../domain/manga/manga_model.dart';
+import '../../../../domain/reading_progress/reading_progress_model.dart';
 import '../../../manga_details/controller/manga_details_controller.dart';
 import '../../../reader/controller/reader_controller.dart';
 import '../chapter_transition_indicator.dart';
@@ -184,7 +186,11 @@ class SinglePageReaderMode extends HookConsumerWidget {
       final nextChapterId = nextChapter.id;
       
       // Validate that this is truly the next chapter (higher chapter number)
-      if (nextChapter.chapterNumber <= chapter.chapterNumber) {
+      // Compare against the CURRENT chapter being viewed, not just the original one
+      // This is important for continuous reading through multiple chapters
+      final currentChapterNumber = currentChapter.value.chapterNumber;
+      if (nextChapter.chapterNumber <= currentChapterNumber) {
+        debugPrint("⚠️ Chapter number validation failed: next chapter ${nextChapter.chapterNumber} is not higher than current ${currentChapterNumber}");
         return; // Skip if not a higher chapter number to avoid loading wrong chapters
       }
       
@@ -263,7 +269,11 @@ class SinglePageReaderMode extends HookConsumerWidget {
       final prevChapterId = prevChapter.id;
       
       // Validate that this is truly the previous chapter (lower chapter number)
-      if (prevChapter.chapterNumber >= chapter.chapterNumber) {
+      // Compare against the CURRENT chapter being viewed, not just the original one
+      // This is important for continuous reading through multiple chapters
+      final currentChapterNumber = currentChapter.value.chapterNumber;
+      if (prevChapter.chapterNumber >= currentChapterNumber) {
+        debugPrint("⚠️ Chapter number validation failed: previous chapter ${prevChapter.chapterNumber} is not lower than current ${currentChapterNumber}");
         return; // Skip if not a lower chapter number to avoid loading wrong chapters
       }
       
@@ -439,14 +449,32 @@ class SinglePageReaderMode extends HookConsumerWidget {
         // Update read progress for current chapter
         if (currentItem.chapterId != chapter.id) {
           // For chapters other than the original one
-          final isReadingCompleted = currentItem.pageIndex >= (currentItem.chapterPages.chapter.pageCount - 1);
-          ref.read(mangaBookRepositoryProvider).putChapter(
+          // Be careful not to mark chapters as read prematurely
+          final isStartingChapter = currentItem.pageIndex < 3; // If reading the first few pages
+          final isReadingCompleted = !isStartingChapter && currentItem.pageIndex >= (currentItem.chapterPages.chapter.pageCount - 1);
+          
+          // Create progress dto for local storage first
+          final progress = ReadingProgressDto(
             chapterId: currentItem.chapterId,
-            patch: ChapterChange(
-              lastPageRead: isReadingCompleted ? 0 : currentItem.pageIndex,
-              isRead: isReadingCompleted,
-            ),
+            pageIndex: currentItem.pageIndex,
+            isRead: isReadingCompleted,
+            timestamp: DateTime.now(),
+            synced: false,
           );
+          
+          // Get the local repository
+          final progressRepository = ref.read(readingProgressRepositoryProvider);
+          
+          // Save locally first (use fire-and-forget pattern without await)
+          progressRepository.saveProgress(progress);
+          
+          // Add to sync queue for background processing (use fire-and-forget pattern)
+          progressRepository.addToSyncQueue(progress);
+          
+          // For completed chapters, try to sync immediately
+          if (isReadingCompleted) {
+            ref.read(progressSyncServiceProvider.notifier).syncChapter(currentItem.chapterId);
+          }
         }
       } else if (!continuousReading) {
         // Even in single chapter mode, track the last viewed page
@@ -515,8 +543,9 @@ class SinglePageReaderMode extends HookConsumerWidget {
       return null;
     }, [currentIndex.value, currentChapter.value, continuousReading, allPages.value]);
     
-    // Prepopulate repository for safe access during cleanup
+    // Prepopulate repositories for safe access during cleanup
     final repository = ref.read(mangaBookRepositoryProvider);
+    final progressRepository = ref.read(readingProgressRepositoryProvider);
     
     // Cleanup effect to save progress when exiting the reader
     useEffect(() {
@@ -525,33 +554,77 @@ class SinglePageReaderMode extends HookConsumerWidget {
         final lastPage = lastViewedPage.value;
         if (lastPage != null && !lastPage.isTransitionIndicator) {
           final pageIndex = lastPage.pageIndex;
-          final isReadingCompleted = pageIndex >= (lastPage.chapterPages.chapter.pageCount - 1);
           
-          debugPrint("💾 Saving final progress on exit - Chapter: ${lastPage.chapter.name}, Page: $pageIndex");
+          // Fix: Only mark a chapter as completely read if the user has actually reached the last page
+          // For newly started chapters, we need to be more careful about marking them as read
+          final isStartingChapter = pageIndex < 3; // If reading the first few pages
+          final isReadingCompleted = !isStartingChapter && pageIndex >= (lastPage.chapterPages.chapter.pageCount - 1);
+          
+          debugPrint("💾 Saving final progress on exit - Chapter: ${lastPage.chapter.name}, Page: $pageIndex (isCompleted: $isReadingCompleted)");
           
           try {
-            // Use the pre-captured repository instance without referring to ref
-            repository.putChapter(
+            // Create progress dto for local storage first
+            final progress = ReadingProgressDto(
               chapterId: lastPage.chapterId,
-              patch: ChapterChange(
-                lastPageRead: isReadingCompleted ? 0 : pageIndex,
-                isRead: isReadingCompleted,
-              ),
+              pageIndex: pageIndex,
+              isRead: isReadingCompleted,
+              timestamp: DateTime.now(),
+              synced: false,
             );
+            
+            // Use the pre-captured repositories (not using ref)
+            
+            // Save locally first
+            progressRepository.saveProgress(progress);
+            
+            // Add to sync queue for background processing
+            progressRepository.addToSyncQueue(progress);
+            
+            // Try to immediately sync on exit
+            try {
+              // Use the pre-captured repository instance for API sync
+              repository.putChapter(
+                chapterId: lastPage.chapterId,
+                patch: ChapterChange(
+                  lastPageRead: isReadingCompleted ? 0 : pageIndex,
+                  isRead: isReadingCompleted,
+                ),
+              );
+              
+              // If API sync was successful, mark as synced (fire and forget)
+              progressRepository.saveProgress(progress.copyWith(synced: true));
+            } catch (syncError) {
+              // If API sync fails, it's fine - the queue will handle it later
+              debugPrint("⚠️ Error syncing reading progress: $syncError");
+            }
           } catch (e) {
             debugPrint("⚠️ Error saving reading progress: $e");
           }
         }
       };
-    }, [repository]);
+    }, [repository, progressRepository]);
     
-    // Listen for page changes
+    // Track last update time for throttling
+    final lastUpdateTime = useRef<DateTime>(DateTime.now());
+    final throttleDuration = const Duration(milliseconds: 300); // Update at most every 300ms
+    
+    // Listen for page changes with throttling
     useEffect(() {
       listener() {
+        // Apply throttling to prevent too frequent updates
+        final now = DateTime.now();
+        if (now.difference(lastUpdateTime.value) < throttleDuration) {
+          // Skip this update as it's too soon after the last one
+          return;
+        }
+        
         final currentPage = scrollController.page;
         if (currentPage != null) {
           final newIndex = currentPage.round();
           if (newIndex != currentIndex.value) {
+            // Update the time since we're making a change
+            lastUpdateTime.value = now;
+            // Update the page
             currentIndex.value = newIndex;
           }
         }
