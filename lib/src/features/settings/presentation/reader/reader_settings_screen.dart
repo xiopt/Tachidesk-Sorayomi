@@ -16,6 +16,7 @@ import 'widgets/reader_auto_next_chapter_tile/reader_auto_next_chapter_tile.dart
 import 'widgets/reader_continuous_reading_tile/reader_continuous_reading_tile.dart';
 import 'widgets/reader_initial_overlay_tile/reader_initial_overlay_tile.dart';
 import 'widgets/reader_invert_tap_tile/reader_invert_tap_tile.dart';
+import 'widgets/reader_keep_screen_on_tile/reader_keep_screen_on_tile.dart';
 import 'widgets/reader_magnifier_size_slider/reader_magnifier_size_slider.dart';
 import 'widgets/reader_mode_tile/reader_mode_tile.dart';
 import 'widgets/reader_navigation_layout_tile/reader_navigation_layout_tile.dart';
@@ -44,6 +45,7 @@ class ReaderSettingsScreen extends ConsumerWidget {
           const AutoNextChapterToggleTile(),
           const ContinuousReadingToggleTile(),
           const ReaderScrollAnimationTile(),
+          const ReaderKeepScreenOnTile(),
           const ReaderPaddingSlider(),
           const ReaderMagnifierSizeSlider(),
           if (!kIsWeb) ...[

@@ -54,6 +54,7 @@ enum DBKeys {
   pinchToZoom(true),
   flexScheme(FlexScheme.material),
   continuousReading(false),
+  keepScreenOn(false),
   ;
 
   const DBKeys(this.initial);

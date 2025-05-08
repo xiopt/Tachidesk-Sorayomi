@@ -9,9 +9,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../../../constants/enum.dart';
 import '../../../../utils/extensions/custom_extensions.dart';
+import '../../../settings/presentation/reader/widgets/reader_keep_screen_on_tile/reader_keep_screen_on_tile.dart';
 import '../../../settings/presentation/reader/widgets/reader_mode_tile/reader_mode_tile.dart';
 import '../../data/reading_progress/reading_progress_repository.dart';
 import '../../domain/manga/manga_model.dart';
@@ -136,13 +138,27 @@ class ReaderScreen extends HookConsumerWidget {
       };
     }, [cachedChapter, progressRepository]);
     
+    // Get the keep screen on setting
+    final keepScreenOn = ref.watch(keepScreenOnProvider).ifNull();
+    
     useEffect(() {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-      return () => SystemChrome.setEnabledSystemUIMode(
-            SystemUiMode.manual,
-            overlays: SystemUiOverlay.values,
-          );
-    }, []);
+      
+      // Enable or disable wake lock based on setting
+      if (keepScreenOn) {
+        WakelockPlus.enable();
+      }
+      
+      return () {
+        SystemChrome.setEnabledSystemUIMode(
+          SystemUiMode.manual,
+          overlays: SystemUiOverlay.values,
+        );
+        
+        // Always disable wake lock when leaving the reader
+        WakelockPlus.disable();
+      };
+    }, [keepScreenOn]);
 
     return PopScope(
       onPopInvokedWithResult: (didPop, _) async {

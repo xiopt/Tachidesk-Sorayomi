@@ -1147,6 +1147,8 @@
     "readerVolumeTap": "Volume Keys",
     "readerVolumeTapInvert": "Invert Volume Keys",
     "readerVolumeTapSubtitle": "Navigate with Volume Keys",
+    "keepScreenOn": "Keep screen on",
+    "keepScreenOnSubtitle": "Prevents display from turning off while reading",
     "reddit": "Reddit",
     "refresh": "Refresh",
     "reload": "Reload",
