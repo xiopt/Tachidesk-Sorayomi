@@ -44,7 +44,11 @@ Here is a list of current features for interaction with Sorayomi:
 - Viewing chapter updates
 
 ### Fork Enhancements
-- **On Deck Page**: Track and display manga with ongoing reading progress
+- **On Deck Page**: 
+  - Track and display manga with ongoing reading progress
+  - Quickly resume reading from where you left off
+  - Automatically track all manga you're currently reading
+  - Easily see your reading progress for each manga
 - **Enhanced Reader**: 
   - Improved continuous reading experience
   - Reliable progress tracking (even when exiting quickly)
