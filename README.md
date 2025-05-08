@@ -49,6 +49,7 @@ Here is a list of current features for interaction with Sorayomi:
   - Improved continuous reading experience
   - Reliable progress tracking (even when exiting quickly)
   - Better page navigation between chapters
+  - Keep screen on while reading option
 - **Stability Improvements**: Fixed various bugs in chapter tracking and UI
 
 **Note:** Keep in mind that Sorayomi and Suwayomi-Server are alpha software, so it can have issues. See [Support and help](#support-and-help) if it happens.
