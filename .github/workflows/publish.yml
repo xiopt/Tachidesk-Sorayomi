@@ -175,10 +175,26 @@ jobs:
         run: |
           $env:Path += ";C:\Program Files (x86)\WiX Toolset v3.11\bin"
           $upgradeCode = [guid]::NewGuid().Guid
+          # Convert version format to be compatible with WiX
+          $version = "${{ github.ref_name }}"
+          # Remove 'v' prefix if present
+          if ($version.StartsWith("v")) {
+            $version = $version.Substring(1)
+          }
+          # Replace + with . for WiX compatibility
+          $version = $version.Replace("+", ".")
+          # Ensure we have at least 3 segments
+          $segments = $version.Split(".")
+          while ($segments.Length -lt 3) {
+            $version += ".0"
+            $segments = $version.Split(".")
+          }
+          Write-Host "Using version: $version for WiX packaging"
+          
           Copy-Item "${env:GITHUB_WORKSPACE}\scripts\${{ env.pkg_name }}-x64.wxs" .
           Copy-Item "${env:GITHUB_WORKSPACE}\assets\icons\launcher\sorayomi_icon.ico" .
           heat dir data -cg data -dr data -sreg -sfrag -gg -o data.wxs
-          candle -arch x64 -dVersion="${{ github.ref_name }}" -dUpgradeCode="$upgradeCode" -dIcon="sorayomi_icon.ico" "${{ env.pkg_name }}-x64.wxs" data.wxs
+          candle -arch x64 -dVersion="$version" -dUpgradeCode="$upgradeCode" -dIcon="sorayomi_icon.ico" "${{ env.pkg_name }}-x64.wxs" data.wxs
           light -b data "${{ env.pkg_name }}-x64.wixobj" data.wixobj -o "${{ env.pkg_name }}-${{ github.ref_name }}-${{ matrix.target }}-x64.msi"
           Move-Item "${{ env.pkg_name }}-${{ github.ref_name }}-${{ matrix.target }}-x64.msi" "${env:GITHUB_WORKSPACE}"
 
